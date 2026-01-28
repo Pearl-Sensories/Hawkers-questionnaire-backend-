@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Log files
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vercel/Render deployments (optional)
+dist/
+build/
+
+# Node modules
+node_modules/
+
+# Google Service Account
+credentials.json
