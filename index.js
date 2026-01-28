@@ -10,29 +10,38 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Google Sheets auth using Render environment variables
+// ✅ Load Google service account credentials from Render Secret File
+// Render stores secret files at /etc/secrets/<filename>
+const keys = JSON.parse(
+  fs.readFileSync("/etc/secrets/credentials.json", "utf8")
+);
+
+// Google Sheets auth
 const client = new google.auth.JWT(
-  process.env.GOOGLE_CLIENT_EMAIL,
+  keys.client_email,
   null,
-  // Replace escaped newlines with actual newlines
-  process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  keys.private_key,
   ["https://www.googleapis.com/auth/spreadsheets"]
 );
 
-const spreadsheetId = "1uE9IBvuZsYdBX0_vrpr1mcKGOONwx_2xbhwCs2IgPc4"; // Your Sheet ID
+const spreadsheetId = "1uE9IBvuZsYdBX0_vrpr1mcKGOONwx_2xbhwCs2IgPc4";
 
 async function appendToSheet(row) {
   try {
     await client.authorize();
+
     const sheets = google.sheets({ version: "v4", auth: client });
+
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: "Sheet1!A:Z", // Adjust if your sheet name is different
+      range: "Sheet1!A:Z", // Sheet tab name is Sheet1 (file name doesn't matter)
       valueInputOption: "RAW",
-      resource: { values: [row] },
+      resource: {
+        values: [row],
+      },
     });
   } catch (err) {
-    console.error("Error writing to Google Sheet:", err);
+    console.error("❌ Error writing to Google Sheet:", err);
   }
 }
 
@@ -48,21 +57,19 @@ app.post("/submit", async (req, res) => {
     ...req.body,
   };
 
-  // Save locally
+  // Save locally (optional but fine)
   let data = [];
   if (fs.existsSync("responses.json")) {
     try {
-      const fileContent = fs.readFileSync("responses.json", "utf-8");
-      data = JSON.parse(fileContent);
+      data = JSON.parse(fs.readFileSync("responses.json", "utf-8"));
       if (!Array.isArray(data)) data = [];
-    } catch (err) {
-      console.error("Error reading local JSON:", err);
+    } catch {
       data = [];
     }
   }
 
   data.push(response);
-  fs.writeFileSync("responses.json", JSON.stringify(data, null, 2), "utf-8");
+  fs.writeFileSync("responses.json", JSON.stringify(data, null, 2));
 
   // Push to Google Sheets
   const row = [
