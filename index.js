@@ -1,33 +1,63 @@
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
-const { createClient } = require("@supabase/supabase-js");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Initialize Supabase client
-const supabaseUrl = "YOUR_SUPABASE_URL";
-const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
-const supabase = createClient(supabaseUrl, supabaseKey);
+// SQLite database setup
+const dbPath = path.join(__dirname, "responses.db");
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error("❌ Error opening database:", err.message);
+  } else {
+    console.log("✅ Connected to SQLite database.");
+    db.run(
+      `CREATE TABLE IF NOT EXISTS responses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT,
+        city_town TEXT,
+        location_name TEXT,
+        bottled_water_brands TEXT,
+        csd_brands TEXT,
+        malted_soft_drinks_brands TEXT,
+        energy_drinks_brands TEXT,
+        other_products TEXT,
+        products_source TEXT,
+        water_source TEXT,
+        csd_source TEXT,
+        malted_source TEXT,
+        energy_source TEXT,
+        other_products_source TEXT,
+        daily_sales TEXT,
+        payment_type TEXT,
+        average_weight TEXT
+      )`,
+      (err) => {
+        if (err) console.error("❌ Table creation error:", err.message);
+      }
+    );
+  }
+});
 
 // Test route
 app.get("/", (req, res) => {
   res.send("Backend is working ✅");
 });
 
-// Endpoint to receive form submissions
-app.post("/submit", async (req, res) => {
+// POST /submit route
+app.post("/submit", (req, res) => {
   const response = {
     timestamp: new Date().toISOString(),
     ...req.body,
   };
 
-  // Optional: Save locally
+  // Save locally (optional)
   let data = [];
   if (fs.existsSync("responses.json")) {
     try {
@@ -40,15 +70,56 @@ app.post("/submit", async (req, res) => {
   data.push(response);
   fs.writeFileSync("responses.json", JSON.stringify(data, null, 2));
 
-  // Insert into Supabase
-  const { error } = await supabase.from("responses").insert([response]);
+  // Insert into SQLite
+  const stmt = db.prepare(
+    `INSERT INTO responses 
+      (timestamp, city_town, location_name, bottled_water_brands, csd_brands, malted_soft_drinks_brands,
+       energy_drinks_brands, other_products, products_source, water_source, csd_source, malted_source,
+       energy_source, other_products_source, daily_sales, payment_type, average_weight)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
 
-  if (error) {
-    console.error("❌ Supabase insert error:", error);
-    return res.status(500).json({ success: false, error });
-  }
+  stmt.run(
+    response.timestamp,
+    response.city_town || "",
+    response.location_name || "",
+    response.bottled_water_brands || "",
+    response.csd_brands || "",
+    response.malted_soft_drinks_brands || "",
+    response.energy_drinks_brands || "",
+    response.other_products || "",
+    response.products_source || "",
+    response.water_source || "",
+    response.csd_source || "",
+    response.malted_source || "",
+    response.energy_source || "",
+    response.other_products_source || "",
+    response.daily_sales || "",
+    response.payment_type || "",
+    response.average_weight || "",
+    function (err) {
+      if (err) {
+        console.error("❌ DB insert error:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+      } else {
+        res.json({ success: true, message: "Saved locally & in SQLite 🎉", id: this.lastID });
+      }
+    }
+  );
 
-  res.json({ success: true, message: "Saved locally & pushed to Supabase 🎉" });
+  stmt.finalize();
+});
+
+// ✅ GET /responses route to view all submissions
+app.get("/responses", (req, res) => {
+  db.all("SELECT * FROM responses ORDER BY id DESC", (err, rows) => {
+    if (err) {
+      console.error("❌ DB read error:", err.message);
+      res.status(500).json({ success: false, error: err.message });
+    } else {
+      res.json({ success: true, data: rows });
+    }
+  });
 });
 
 // Start server
