@@ -116,3 +116,17 @@ app.get("/responses", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} ✅`);
 });
+
+const path = require("path");
+
+// Endpoint to download the SQLite database
+app.get("/download-db", (req, res) => {
+  const dbPath = path.join(__dirname, "responses.db");
+  res.download(dbPath, "responses.db", (err) => {
+    if (err) {
+      console.error("Error downloading database:", err);
+      res.status(500).send("Failed to download database");
+    }
+  });
+});
+
