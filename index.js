@@ -46,7 +46,7 @@ async function appendToSheet(row) {
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:Z`,
+      range: "A:Z",
       valueInputOption: "RAW",
       requestBody: {
         values: [row],
