@@ -65,7 +65,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
         daily_sales TEXT,
         pricing TEXT,
         payment_type TEXT,
-        observation TEXT,
         willingness TEXT
       )
     `);
@@ -117,10 +116,9 @@ app.post("/submit", (req, res) => {
       daily_sales,
       pricing,
       payment_type,
-      observation,
       willingness
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, )
   `);
 
   stmt.run(
@@ -141,7 +139,6 @@ app.post("/submit", (req, res) => {
     response.daily_sales || "",
     response.pricing || "",
     response.payment_type || "",
-    response.observation || "",
     response.willingness || "",
     function (err) {
       if (err) {
@@ -201,7 +198,6 @@ app.get("/export-csv", (req, res) => {
       "daily_sales",
       "pricing",
       "payment_type",
-      "observation",
       "willingness",
     ];
 
