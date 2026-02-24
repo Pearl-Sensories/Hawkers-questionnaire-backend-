@@ -8,8 +8,9 @@ const { Parser } = require("json2csv");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-
-
+// =======================
+// Configure CORS
+// =======================
 const allowedOrigins = [
   "https://hawkermama-questionnaire-jjw9.vercel.app",
   "https://hawkermama-questionnaire-65ul.vercel.app",
@@ -18,9 +19,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow server-to-server, Postman, etc.
-      if (!origin) return callback(null, true);
-
+      if (!origin) return callback(null, true); // server-to-server or Postman
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -33,19 +32,18 @@ app.use(
   })
 );
 
-
 app.options("*", cors());
-
 app.use(express.json());
 
-
-
-const dbPath = path.join(__dirname, "responses.db");
+// =======================
+// Database setup
+// =======================
+const dbPath = path.join("/tmp", "responses.db"); // Render-safe
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error(" Error opening database:", err.message);
+    console.error("Error opening database:", err.message);
   } else {
-    console.log(" Connected to SQLite database.");
+    console.log("Connected to SQLite database at /tmp/responses.db");
 
     db.run(`
       CREATE TABLE IF NOT EXISTS responses (
@@ -74,10 +72,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-/* =========================
-   POST /submit
-========================= */
+// Optional JSON backup
+const jsonPath = path.join("/tmp", "responses.json");
 
+// =======================
+// POST /submit
+// =======================
 app.post("/submit", (req, res) => {
   const response = {
     timestamp: new Date().toISOString(),
@@ -86,17 +86,18 @@ app.post("/submit", (req, res) => {
 
   // Save locally as JSON (optional)
   let data = [];
-  if (fs.existsSync("responses.json")) {
+  if (fs.existsSync(jsonPath)) {
     try {
-      data = JSON.parse(fs.readFileSync("responses.json", "utf-8"));
+      data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
       if (!Array.isArray(data)) data = [];
     } catch {
       data = [];
     }
   }
   data.push(response);
-  fs.writeFileSync("responses.json", JSON.stringify(data, null, 2));
+  fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2));
 
+  // Save in SQLite
   const stmt = db.prepare(`
     INSERT INTO responses (
       timestamp,
@@ -144,7 +145,7 @@ app.post("/submit", (req, res) => {
     response.willingness || "",
     function (err) {
       if (err) {
-        console.error(" DB insert error:", err.message);
+        console.error("DB insert error:", err.message);
         res.status(500).json({ success: false, error: err.message });
       } else {
         res.json({
@@ -159,10 +160,9 @@ app.post("/submit", (req, res) => {
   stmt.finalize();
 });
 
-/* =========================
-   GET /responses
-========================= */
-
+// =======================
+// GET /responses
+// =======================
 app.get("/responses", (req, res) => {
   db.all("SELECT * FROM responses ORDER BY id DESC", (err, rows) => {
     if (err) {
@@ -173,10 +173,9 @@ app.get("/responses", (req, res) => {
   });
 });
 
-/* =========================
-   GET /export-csv
-========================= */
-
+// =======================
+// GET /export-csv
+// =======================
 app.get("/export-csv", (req, res) => {
   db.all("SELECT * FROM responses ORDER BY id ASC", (err, rows) => {
     if (err) {
@@ -215,10 +214,9 @@ app.get("/export-csv", (req, res) => {
   });
 });
 
-/* =========================
-   START SERVER
-========================= */
-
+// =======================
+// START SERVER
+// =======================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
