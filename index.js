@@ -12,8 +12,8 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 // =======================
 const allowedOrigins = [
+  "https://hawkermama-questionnaire-v6fa.vercel.app",
   "https://hawkermama-questionnaire-jjw9.vercel.app",
-  "https://hawkermama-questionnaire-65ul.vercel.app",
 ];
 
 app.use(
@@ -31,7 +31,6 @@ app.use(
     credentials: true,
   })
 );
-
 
 app.use(express.json());
 
@@ -118,7 +117,7 @@ app.post("/submit", (req, res) => {
       payment_type,
       willingness
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
