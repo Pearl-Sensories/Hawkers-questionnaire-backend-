@@ -8,9 +8,7 @@ const { Parser } = require("json2csv");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-/* =========================
-   ✅ CORS CONFIG (FIXED)
-========================= */
+
 
 const allowedOrigins = [
   "https://hawkermama-questionnaire-jjw9.vercel.app",
@@ -35,21 +33,19 @@ app.use(
   })
 );
 
-// ✅ REQUIRED FOR PREFLIGHT REQUESTS
+
 app.options("*", cors());
 
 app.use(express.json());
 
-/* =========================
-   SQLite DATABASE SETUP
-========================= */
+
 
 const dbPath = path.join(__dirname, "responses.db");
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error("❌ Error opening database:", err.message);
+    console.error(" Error opening database:", err.message);
   } else {
-    console.log("✅ Connected to SQLite database.");
+    console.log(" Connected to SQLite database.");
 
     db.run(`
       CREATE TABLE IF NOT EXISTS responses (
@@ -148,7 +144,7 @@ app.post("/submit", (req, res) => {
     response.willingness || "",
     function (err) {
       if (err) {
-        console.error("❌ DB insert error:", err.message);
+        console.error(" DB insert error:", err.message);
         res.status(500).json({ success: false, error: err.message });
       } else {
         res.json({
@@ -224,5 +220,5 @@ app.get("/export-csv", (req, res) => {
 ========================= */
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
