@@ -3,30 +3,56 @@ const fs = require("fs");
 const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
-const { Parser } = require("json2csv"); // for converting JSON to CSV
+const { Parser } = require("json2csv");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+/* =========================
+   ✅ CORS CONFIG (FIXED)
+========================= */
+
+const allowedOrigins = [
+  "https://hawkermama-questionnaire-jjw9.vercel.app",
+  "https://hawkermama-questionnaire-65ul.vercel.app",
+];
+
 app.use(
   cors({
-    origin: [
-      "https://hawkermama-questionnaire-jjw9.vercel.app",
-    ],
+    origin: function (origin, callback) {
+      // Allow server-to-server, Postman, etc.
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
+
+// ✅ REQUIRED FOR PREFLIGHT REQUESTS
+app.options("*", cors());
+
 app.use(express.json());
 
-// SQLite database setup
+/* =========================
+   SQLite DATABASE SETUP
+========================= */
+
 const dbPath = path.join(__dirname, "responses.db");
 const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error("❌ Error opening database:", err.message);
-  else {
+  if (err) {
+    console.error("❌ Error opening database:", err.message);
+  } else {
     console.log("✅ Connected to SQLite database.");
-    db.run(
-      `CREATE TABLE IF NOT EXISTS responses (
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TEXT,
         city_town TEXT,
@@ -47,19 +73,22 @@ const db = new sqlite3.Database(dbPath, (err) => {
         payment_type TEXT,
         observation TEXT,
         willingness TEXT
-      )`
-    );
+      )
+    `);
   }
 });
 
-// POST /submit
+/* =========================
+   POST /submit
+========================= */
+
 app.post("/submit", (req, res) => {
   const response = {
     timestamp: new Date().toISOString(),
     ...req.body,
   };
 
-  // Save locally in JSON (optional)
+  // Save locally as JSON (optional)
   let data = [];
   if (fs.existsSync("responses.json")) {
     try {
@@ -72,14 +101,30 @@ app.post("/submit", (req, res) => {
   data.push(response);
   fs.writeFileSync("responses.json", JSON.stringify(data, null, 2));
 
-  // Insert into SQLite
-  const stmt = db.prepare(
-    `INSERT INTO responses 
-      (timestamp, city_town, location_name, bottled_water_brands, csd_brands, malted_soft_drinks_brands,
-       energy_drinks_brands, other_products, products_source, water_source, csd_source, malted_source,
-       energy_source, other_products_source, daily_sales, pricing, payment_type, observation, willingness)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)`
-  );
+  const stmt = db.prepare(`
+    INSERT INTO responses (
+      timestamp,
+      city_town,
+      location_name,
+      bottled_water_brands,
+      csd_brands,
+      malted_soft_drinks_brands,
+      energy_drinks_brands,
+      other_products,
+      products_source,
+      water_source,
+      csd_source,
+      malted_source,
+      energy_source,
+      other_products_source,
+      daily_sales,
+      pricing,
+      payment_type,
+      observation,
+      willingness
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
 
   stmt.run(
     response.timestamp,
@@ -106,31 +151,63 @@ app.post("/submit", (req, res) => {
         console.error("❌ DB insert error:", err.message);
         res.status(500).json({ success: false, error: err.message });
       } else {
-        res.json({ success: true, message: "Saved locally & in SQLite 🎉", id: this.lastID });
+        res.json({
+          success: true,
+          message: "Saved locally & in SQLite 🎉",
+          id: this.lastID,
+        });
       }
     }
   );
+
   stmt.finalize();
 });
 
-// GET /responses (JSON)
+/* =========================
+   GET /responses
+========================= */
+
 app.get("/responses", (req, res) => {
   db.all("SELECT * FROM responses ORDER BY id DESC", (err, rows) => {
-    if (err) res.status(500).json({ success: false, error: err.message });
-    else res.json({ success: true, data: rows });
+    if (err) {
+      res.status(500).json({ success: false, error: err.message });
+    } else {
+      res.json({ success: true, data: rows });
+    }
   });
 });
 
-// ✅ GET /export-csv
+/* =========================
+   GET /export-csv
+========================= */
+
 app.get("/export-csv", (req, res) => {
   db.all("SELECT * FROM responses ORDER BY id ASC", (err, rows) => {
-    if (err) return res.status(500).json({ success: false, error: err.message });
+    if (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
 
     const fields = [
-      "id", "timestamp", "city_town", "location_name", "bottled_water_brands",
-      "csd_brands", "malted_soft_drinks_brands", "energy_drinks_brands", "other_products",
-      "products_source", "water_source", "csd_source", "malted_source", "energy_source",
-      "other_products_source", "daily_sales", "pricing", "payment_type", "observation", "willingness"
+      "id",
+      "timestamp",
+      "city_town",
+      "location_name",
+      "bottled_water_brands",
+      "csd_brands",
+      "malted_soft_drinks_brands",
+      "energy_drinks_brands",
+      "other_products",
+      "products_source",
+      "water_source",
+      "csd_source",
+      "malted_source",
+      "energy_source",
+      "other_products_source",
+      "daily_sales",
+      "pricing",
+      "payment_type",
+      "observation",
+      "willingness",
     ];
 
     const parser = new Parser({ fields });
@@ -142,5 +219,10 @@ app.get("/export-csv", (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+/* =========================
+   START SERVER
+========================= */
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
