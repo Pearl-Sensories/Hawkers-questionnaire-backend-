@@ -8,7 +8,15 @@ const { Parser } = require("json2csv"); // for converting JSON to CSV
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://hawkermama-questionnaire-jjw9.vercel.app",
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 app.use(express.json());
 
 // SQLite database setup
@@ -69,7 +77,7 @@ app.post("/submit", (req, res) => {
       (timestamp, city_town, location_name, bottled_water_brands, csd_brands, malted_soft_drinks_brands,
        energy_drinks_brands, other_products, products_source, water_source, csd_source, malted_source,
        energy_source, other_products_source, daily_sales, pricing, payment_type, observation)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`
   );
 
   stmt.run(
