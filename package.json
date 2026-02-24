@@ -1,14 +1,21 @@
 {
   "name": "questionnaire-backend",
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.93.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "googleapis": "^168.0.0",
     "json2csv": "^6.0.0-alpha.2",
     "sqlite3": "^5.1.7"
   }
