@@ -35,8 +35,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
         energy_source TEXT,
         other_products_source TEXT,
         daily_sales TEXT,
+        pricing TEXT,
         payment_type TEXT,
-        average_weight TEXT
+        observation TEXT
       )`
     );
   }
@@ -67,7 +68,7 @@ app.post("/submit", (req, res) => {
     `INSERT INTO responses 
       (timestamp, city_town, location_name, bottled_water_brands, csd_brands, malted_soft_drinks_brands,
        energy_drinks_brands, other_products, products_source, water_source, csd_source, malted_source,
-       energy_source, other_products_source, daily_sales, payment_type, average_weight)
+       energy_source, other_products_source, daily_sales, pricing, payment_type, observation)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
@@ -87,8 +88,9 @@ app.post("/submit", (req, res) => {
     response.energy_source || "",
     response.other_products_source || "",
     response.daily_sales || "",
+    response.pricing || "",
     response.payment_type || "",
-    response.average_weight || "",
+    response.observation || "",
     function (err) {
       if (err) {
         console.error("❌ DB insert error:", err.message);
@@ -118,7 +120,7 @@ app.get("/export-csv", (req, res) => {
       "id", "timestamp", "city_town", "location_name", "bottled_water_brands",
       "csd_brands", "malted_soft_drinks_brands", "energy_drinks_brands", "other_products",
       "products_source", "water_source", "csd_source", "malted_source", "energy_source",
-      "other_products_source", "daily_sales", "payment_type", "average_weight"
+      "other_products_source", "daily_sales", "prices", "payment_type", "observation"
     ];
 
     const parser = new Parser({ fields });
