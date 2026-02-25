@@ -12,8 +12,7 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 // =======================
 const allowedOrigins = [
-  "https://hawkermama-questionnaire-v6fa.vercel.app",
-  "https://hawkermama-questionnaire-jjw9.vercel.app",
+  "https://hawkermama-questionnaire-dcna.vercel.app",
 ];
 
 app.use(
